@@ -78,7 +78,7 @@ class SimMainFrame(title: String) : JFrame(title) {
                 }
             })
 
-            shutter.setProgressListener { progress -> SwingUtilities.invokeLater { progressBar.setValue(progress) } }
+            shutter.progressListener = { progress -> SwingUtilities.invokeLater { progressBar.value = progress } }
 
             val p = JPanel()
             p.layout = BoxLayout(p, BoxLayout.PAGE_AXIS)
@@ -141,11 +141,12 @@ class SimMainFrame(title: String) : JFrame(title) {
     }
 
     class Shutter {
+        private val speedPerTick = 0.005
         private var status = ShutterStatus.IDLE
         private var position = 0.0 // 0.0 is up 1.0 is down
-        private var progressListener: ((Double) -> Unit)? = null
         private var moveUpPressId: Long = -1
         private var moveDownPressId: Long = -1
+        var progressListener: ((Double) -> Unit)? = null
 
         fun moveUp(pressId: Long) {
             if (moveUpPressId == pressId) {
@@ -205,14 +206,6 @@ class SimMainFrame(title: String) : JFrame(title) {
             }
             progressListener?.invoke(position)
         }
-
-        fun setProgressListener(progressListener: (Double) -> Unit) {
-            this.progressListener = progressListener
-        }
-
-        companion object {
-            private val speedPerTick = 0.005
-        }
     }
 
     enum class ShutterStatus {
@@ -253,13 +246,12 @@ class SimMainFrame(title: String) : JFrame(title) {
 
 
     class MyProgressBar : JPanel() {
-        private var value = 0.0
-
-        fun setValue(value: Double) {
-            when {
-                value < 0.0 -> this.value = 0.0
-                value > 1.0 -> this.value = 1.0
-                else -> this.value = value
+        var value = 0.0
+            set(value) {
+                field = when {
+                    value < 0.0 -> 0.0
+                    value > 1.0 -> 1.0
+                    else -> value
             }
             repaint()
         }
@@ -267,7 +259,6 @@ class SimMainFrame(title: String) : JFrame(title) {
         override fun paintComponent(g: Graphics) {
             super.paintComponent(g)
             val g2d = g as Graphics2D
-            val size = size
             g2d.color = Color.DARK_GRAY
             g2d.fillRect(0, 0, size.width, (size.height * value).toInt())
         }
@@ -277,10 +268,7 @@ class SimMainFrame(title: String) : JFrame(title) {
 fun main(args: Array<String>) {
 
     // init and start gui
-    UIManager.getLookAndFeelDefaults()
-            .put("defaultFont", Font("Arial Unicode MS", Font.PLAIN, 14))
-
-    val mainFrame = SimMainFrame("FSM")
+    val mainFrame = SimMainFrame("Shutter Control Sim")
 
     SwingUtilities.invokeLater { mainFrame.initShuttersGui() }
 
